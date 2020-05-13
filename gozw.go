@@ -175,6 +175,10 @@ func (c *Client) Node(nodeID byte) (*Node, error) {
 }
 
 func (c *Client) initZWave() error {
+	// drain all lefover frames and send not ready
+	time.Sleep(100 * time.Millisecond)
+	c.serialAPI.SerialAPIReady(0)
+
 	version, err := c.serialAPI.GetVersion()
 	if err != nil {
 		return err
