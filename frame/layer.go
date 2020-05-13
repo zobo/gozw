@@ -2,6 +2,7 @@ package frame
 
 import (
 	"context"
+	"github.com/davecgh/go-spew/spew"
 	"io"
 	"time"
 
@@ -76,10 +77,10 @@ func (l *Layer) bgWork() {
 
 			if frameIn.status == ParseOk {
 				l.sendAck()
-				l.l.Debug("received frame successfully, writing output")
+				l.l.Debug("received frame successfully, writing output", zap.String("frame", spew.Sdump(frameIn)))
 				l.frameOutput <- frameIn.frame
 			} else if frameIn.status == ParseNotOk {
-				l.l.Warn("received frame, parse not ok")
+				l.l.Warn("received frame, parse not ok", zap.String("frame", spew.Sdump(frameIn)))
 				l.sendNak()
 			} else {
 				// @todo handle timeout(?)
@@ -96,17 +97,42 @@ func (l *Layer) bgWork() {
 			l.l.Debug("frame received, writing to transport")
 			// this method never returns an error, so ignore it
 			buf, _ := frameToWrite.MarshalBinary()
+			attempts := time.Duration(0)
+		retry:
+			l.l.Debug("writing to transport", zap.Int64("attempt", int64(attempts)))
 
 			l.writeToTransport(buf)
 			// TODO: this needs to time out
 
-			// <-l.acks
-			select {
-			case <-l.acks:
-				l.l.Debug("received ack")
-			case <-time.After(1 * time.Second):
-				l.l.Error("ack timed out")
+		drain:
+			for {
+				select {
+				case <-l.acks:
+					l.l.Debug("received ack")
+					attempts = 100 // break out of retry loop
+					break drain
+				case <-l.cans:
+					l.l.Warn("received can")
+				case <-l.naks:
+					l.l.Warn("received nak")
+				case frameIn := <-l.parserOutput:
+					l.l.Warn("received frame while waiting for ack", zap.String("frame", spew.Sdump(frameIn)))
+					l.sendNak()
+
+					// TODO wait 1500 ms for ack
+					// in case of fail, resent after 100ms + att*1s
+
+				case <-time.After(100 * time.Millisecond + attempts * time.Second):
+					l.l.Error("ack timed out")
+					break drain
+				}
 			}
+			attempts++
+			if attempts <= 3 {
+				goto retry
+			}
+			// how to report error up?
+
 		case <-l.ctx.Done():
 			l.l.Info("closing frame layer bg work")
 			return
@@ -135,21 +161,25 @@ func (l *Layer) bgRead() {
 			// TODO: handle more gracefully
 			l.l.Fatal("error reading from transport", zap.String("err", err.Error()))
 		}
+		//l.l.Debug("got byte", zap.Int("byte", int(byt)))
 
 		l.parserInput <- byt
 	}
 }
 
 func (l *Layer) writeToTransport(buf []byte) (int, error) {
+	l.l.Debug("send data", zap.String("buf", spew.Sdump(buf)))
 	return l.transportLayer.Write(buf)
 }
 
 func (l *Layer) sendAck() error {
+	l.l.Debug("send ack")
 	_, err := l.transportLayer.Write([]byte{HeaderAck})
 	return err
 }
 
 func (l *Layer) sendNak() error {
+	l.l.Debug("send nak")
 	_, err := l.transportLayer.Write([]byte{HeaderNak})
 	return err
 }
