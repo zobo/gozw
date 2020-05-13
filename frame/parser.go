@@ -92,7 +92,6 @@ func NewParser(ctx context.Context, input <-chan byte, output chan<- *ParseEvent
 				}()
 			},
 			"RX_ACK": func(e *fsm.Event) {
-
 				parser.acks <- true
 			},
 			"RX_NAK": func(e *fsm.Event) {
@@ -184,10 +183,13 @@ func (p *Parser) processByte(currentByte byte) {
 		case HeaderData:
 			p.state.Event("RX_SOF", currentByte)
 		case HeaderAck:
+			p.l.Debug("parser ack")
 			p.state.Event("RX_ACK", currentByte)
 		case HeaderCan:
+			p.l.Debug("parser can")
 			p.state.Event("RX_CAN", currentByte)
 		case HeaderNak:
+			p.l.Debug("parser nak")
 			p.state.Event("RX_NAK", currentByte)
 		}
 
@@ -210,7 +212,7 @@ func (p *Parser) processByte(currentByte byte) {
 		p.state.Event("RX_CHECKSUM", currentByte)
 		p.state.Transition()
 
-		payload := p.payloadReadBuffer.Bytes()
+		payload := append([]byte(nil), p.payloadReadBuffer.Bytes()...)
 		frame := Frame{
 			Header:   p.sof,
 			Length:   p.length,
