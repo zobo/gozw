@@ -104,7 +104,7 @@ func (s *Layer) receiveThread() {
 					case s.responses <- *frame.NewCanFrame():
 					default:
 					}
-					return
+					continue
 				}
 
 				switch frameIn.Payload[0] {
