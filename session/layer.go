@@ -213,6 +213,9 @@ func (s *Layer) sendThread() {
 				case <-request.Release:
 				case <-time.After(request.Timeout):
 					s.l.Warn("session lock timeout")
+					if request.TimeoutCallback != nil {
+						request.TimeoutCallback()
+					}
 				}
 			}
 		case <-s.ctx.Done():

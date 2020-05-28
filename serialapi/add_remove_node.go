@@ -84,6 +84,9 @@ func (s *Layer) AddNode() (*AddRemoveNodeCallback, error) {
 				s.l.Warn("ADD NODE: unknown status", zap.String("status", fmt.Sprint(cbData.Status)))
 			}
 		},
+		TimeoutCallback: func() {
+			close(done)
+		},
 	}
 
 	s.sessionLayer.MakeRequest(request)

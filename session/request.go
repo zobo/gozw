@@ -24,4 +24,5 @@ type Request struct {
 	Lock             bool
 	Release          chan bool
 	Timeout          time.Duration
+	TimeoutCallback  func()
 }
