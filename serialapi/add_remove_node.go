@@ -85,6 +85,12 @@ func (s *Layer) AddNode() (*AddRemoveNodeCallback, error) {
 			}
 		},
 		TimeoutCallback: func() {
+			reply := addRemoveStatusFrame(
+				protocol.FnAddNodeToNetwork,
+				protocol.AddNodeStop,
+				0,
+			)
+			s.sessionLayer.SendFrameDirect(reply)
 			close(done)
 		},
 	}
@@ -172,6 +178,15 @@ func (s *Layer) RemoveNode() (*AddRemoveNodeCallback, error) {
 			default:
 				s.l.Warn("REMOVE NODE: unknown status", zap.String("status", fmt.Sprint(cbData.Status)))
 			}
+		},
+		TimeoutCallback: func() {
+			reply := addRemoveStatusFrame(
+				protocol.FnRemoveNodeFromNetwork,
+				protocol.RemoveNodeStop,
+				0,
+			)
+			s.sessionLayer.SendFrameDirect(reply)
+			close(done)
 		},
 	}
 
