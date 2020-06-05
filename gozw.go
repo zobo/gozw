@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/boltdb/bolt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gozwave/gozw/cc"
 	zwsec "github.com/gozwave/gozw/cc/security"
 	"github.com/gozwave/gozw/frame"
@@ -15,8 +17,6 @@ import (
 	"github.com/gozwave/gozw/serialapi"
 	"github.com/gozwave/gozw/session"
 	"github.com/gozwave/gozw/transport"
-	"github.com/boltdb/bolt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 )
@@ -59,7 +59,9 @@ type Client struct {
 }
 
 func NewDefaultClient(dbName, serialPort string, baudRate int, networkKey []byte) (*Client, error) {
-	logger, err := NewLogger()
+	//logger, err := zap.NewDevelopmentConfig().Build()
+	logger, err := zap.NewProductionConfig().Build()
+	//logger, err := NewLogger()
 	if err != nil {
 		return nil, errors.Wrap(err, "initialize logger")
 	}
