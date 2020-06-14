@@ -268,6 +268,13 @@ func (c *Client) AddNode() (*Node, error) {
 		c.l.Warn("node query timeout", zap.String("node", fmt.Sprint(node.NodeID)))
 	}
 
+	select {
+	case <-node.queryStageManufacturerComplete:
+		c.l.Info("node queries manufacturer complete")
+	case <-time.After(time.Second * 5):
+		c.l.Warn("node query manufacturer timeout", zap.String("node", fmt.Sprint(node.NodeID)))
+	}
+
 	node.AddAssociation(1, 1)
 
 	return node, nil
@@ -490,7 +497,7 @@ func (c *Client) interceptSecurityCommandClass(cmd serialapi.ApplicationCommand)
 		return
 	}
 
-	switch command.(type) {
+	switch command2 := command.(type) {
 
 	case *zwsec.MessageEncapsulation, *zwsec.MessageEncapsulationNonceGet:
 		c.l.Info("rx secure message", zap.String("node", fmt.Sprint(cmd.SrcNodeID)))
@@ -554,7 +561,7 @@ func (c *Client) interceptSecurityCommandClass(cmd serialapi.ApplicationCommand)
 		c.securityLayer.ReceiveNonce(cmd.SrcNodeID, *command.(*zwsec.NonceReport))
 
 	case *zwsec.SchemeReport:
-		c.l.Info("security scheme report", zap.String("node", fmt.Sprint(cmd.SrcNodeID)))
+		c.l.Info("security scheme report", zap.String("node", fmt.Sprint(cmd.SrcNodeID)), zap.Int("schema", int(command2.SupportedSecuritySchemes)))
 		if ch, ok := c.secureInclusionStep[cmd.SrcNodeID]; ok {
 			ch <- nil
 		} else {

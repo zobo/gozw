@@ -3,6 +3,7 @@ package security
 import (
 	"errors"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"sync"
 	"time"
 
@@ -78,11 +79,11 @@ func (s *Layer) EncapsulateMessage(
 
 	var encKey, authKey []byte
 	if inclusionMode {
-		s.l.Debug("encrypting message using inclusion encryption")
+		s.l.Debug("encrypting message using inclusion encryption", zap.String("payload", spew.Sdump(payload)))
 		encKey = inclusionEncKey
 		authKey = inclusionAuthKey
 	} else {
-		s.l.Debug("encrypting message using network encryption")
+		s.l.Debug("encrypting message using network encryption", zap.String("payload", spew.Sdump(payload)))
 		encKey = s.networkEncKey
 		authKey = s.networkAuthKey
 	}

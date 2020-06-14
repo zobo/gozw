@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/boltdb/bolt"
+	"github.com/davecgh/go-spew/spew"
 	"github.com/gozwave/gozw/cc"
 	"github.com/gozwave/gozw/cc/association"
 	"github.com/gozwave/gozw/cc/battery"
@@ -15,8 +17,6 @@ import (
 	"github.com/gozwave/gozw/protocol"
 	"github.com/gozwave/gozw/serialapi"
 	"github.com/gozwave/gozw/util"
-	"github.com/boltdb/bolt"
-	"github.com/davecgh/go-spew/spew"
 	"github.com/pkg/errors"
 	"go.uber.org/zap"
 	msgpack "gopkg.in/vmihailenco/msgpack.v2"
@@ -249,16 +249,19 @@ func (n *Node) LoadManufacturerInfo() error {
 
 func (n *Node) nextQueryStage() {
 	if !n.QueryStageSecurity && n.IsSecure() {
+		n.client.l.Debug("nextQueryStage QueryStageSecurity")
 		n.LoadSupportedSecurityCommands()
 		return
 	}
 
 	if !n.QueryStageVersions {
+		n.client.l.Debug("nextQueryStage QueryStageVersions")
 		n.LoadCommandClassVersions()
 		return
 	}
 
 	if !n.QueryStageManufacturer {
+		n.client.l.Debug("nextQueryStage QueryStageManufacturer")
 		n.LoadManufacturerInfo()
 		return
 	}
